@@ -1,63 +1,85 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { useStore } from 'vuex'
-import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
-import L from 'leaflet'
-import 'leaflet/dist/leaflet.css'
-import 'leaflet-routing-machine'
+import { ref, computed, onMounted, watch } from "vue";
+import { useStore } from "vuex";
+import { LMap, LTileLayer, LMarker } from "@vue-leaflet/vue-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-routing-machine";
 
 const props = defineProps({
   parkings: {
     type: Array,
-    default: () => []
-  }
-})
+    default: () => [],
+  },
+});
 
-const emit = defineEmits(['select-parking'])
+console.log(props.parkings);
 
-const store = useStore()
-const mapRef = ref(null)
-const zoom = ref(13)
-const center = ref([47.2225, 39.7187])
+
+const emit = defineEmits(["select-parking"]);
+
+const store = useStore();
+const mapRef = ref(null);
+const zoom = ref(13);
+const center = ref([47.2225, 39.7187]);
 
 const icons = {
   parking: L.icon({
-    iconUrl: '/icons/park.svg',
+    iconUrl: "/icons/park.svg",
     iconSize: [32, 32],
-    iconAnchor: [16, 32]
+    iconAnchor: [16, 32],
   }),
   selectedParking: L.icon({
-    iconUrl: '/icons/park-pin.svg',
+    iconUrl: "/icons/park-pin.svg",
     iconSize: [32, 32],
-    iconAnchor: [16, 32]
+    iconAnchor: [16, 32],
   }),
   user: L.icon({
-    iconUrl: '/icons/user-icon.svg',
+    iconUrl: "/icons/user-icon.svg",
     iconSize: [32, 32],
-    iconAnchor: [16, 32]
-  })
-}
+    iconAnchor: [16, 32],
+  }),
+};
 
-const userPosition = computed(() => store.state.geolocation.userLocation)
+const userPosition = computed(() => store.state.geolocation.userLocation);
 
 const displayedParkings = computed(() => {
   return props.parkings.length > 0
     ? props.parkings
-    : store.getters['parking/filteredParkings']
-})
-
-console.log(displayedParkings.value);
+    : store.getters["parking/filteredParkings"];
+});
 
 
-const isRouting = computed(() => store.getters['parking/isRouting'])
+const isRouting = computed(() => store.getters["parking/isRouting"]);
 
-const handleMarkerClick = (parking) => {
-  emit('select-parking', parking)
-}
+const handleMarkerClick = async (parking) => {
+  emit("select-parking", parking);
+  console.log(parking);
+
+  try {
+    const response = await fetch(
+      `http://26.119.66.245:3000/send_camera?id=${parking.id}`
+    );
+
+
+
+    if (!response.ok) {
+      throw new Error(`Ошибка запроса: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+
+    // Можно сохранить в store, если нужно
+    // store.commit('parking/setFreePlaces', { id: parking.id, free: data.freePlaces })
+  } catch (error) {
+    console.error("Ошибка при запросе свободных мест:", error);
+  }
+};
 
 const cancelRoute = () => {
-  store.dispatch('parking/cancelRoute')
-}
+  store.dispatch("parking/cancelRoute");
+};
 
 watch(
   () => store.state.parking.routeControl,
@@ -71,7 +93,7 @@ watch(
 
     if (newControl) {
       newControl.addTo(map);
-      newControl.on('routesfound', (e) => {
+      newControl.on("routesfound", (e) => {
         const route = e.routes[0];
         if (route) {
           map.fitBounds(route.coordinates);
@@ -79,24 +101,44 @@ watch(
       });
     }
   },
-  { flush: 'post' }
+  { flush: "post" }
 );
 onMounted(async () => {
-  await store.dispatch('geolocation/fetchUserLocation')
-  await store.dispatch('parking/updateParkingDistances')
-})
+  await store.dispatch("parking/fetchParkings");
+
+  await store.dispatch("geolocation/fetchUserLocation");
+  // await store.dispatch('parking/updateParkingDistances')
+});
 </script>
 
 
 <template>
   <div class="map-container">
-    <l-map ref="mapRef" :zoom="zoom" :center="center" :options="{ zoomControl: false }">
-      <l-tile-layer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution="&copy; OpenStreetMap contributors" />
-      <l-marker v-for="parking in displayedParkings" :key="parking.id" :lat-lng="parking.position"
-        :icon="parking.selected ? icons.selectedParking : icons.parking" @click="handleMarkerClick(parking)" />
+    <l-map
+      ref="mapRef"
+      :zoom="zoom"
+      :center="center"
+      :options="{ zoomControl: false }"
+    >
+      <l-tile-layer
+        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution="&copy; OpenStreetMap contributors"
+      />
+      <l-marker
+        v-for="parking in displayedParkings"
+        :key="parking.id"
+        :lat-lng="parking.position"
+        :icon="parking.selected ? icons.selectedParking : icons.parking"
+        @click="handleMarkerClick(parking)"
+      />
 
-      <l-marker v-if="userPosition" :lat-lng="userPosition" :icon="icons.user" />
+      <l-marker
+        v-for="parking in displayedParkings"
+        :key="parking.id"
+        :lat-lng="parking.position"
+        :icon="parking.selected ? icons.selectedParking : icons.parking"
+        @click="() => handleMarkerClick(parking)"
+      />
     </l-map>
 
     <button v-if="isRouting" class="cancel-route-button" @click="cancelRoute">

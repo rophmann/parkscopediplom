@@ -13,7 +13,7 @@
                <span class="parking-places">
                   <img src="/public/icons/adrdot.svg" alt="" />
                </span>
-               {{ parking.address }}
+               {{ parking.name }}
             </p>
             <p style="color: #fff; font-size: 14px;">Найдено парковочных мест: {{ parking.places }}</p>
          </div>
@@ -21,7 +21,7 @@
          <div class="right">
             <div class="parking-footer">
                <span class="parking-price"><span>{{ parking.price }}₽</span> /час</span>
-               <span class="parking-distance">{{ parking.distance }}</span>
+               <!-- <span class="parking-distance">{{ parking.distance }}</span> -->
                <div class="btns">
                   <button class="map" @click="$emit('go-to-parking', parking)">Карта</button>
                   <button class="open" @click="$emit('show-parking-detail', parking)">Открыть</button>

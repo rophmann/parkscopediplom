@@ -1,40 +1,8 @@
 import axios from "axios";
-
+const url = 'http://26.119.66.245:3000'
 const state = {
   parkings: [
-    {
-      id: 1,
-      name: "Парковка тц",
-      position: [47.2253, 39.7189],
-      price: 50,
-      address: "ул. Большая Садовая, 10",
-      places: 24,
-      selected: false,
-      distance: null,
-      availablePlaces: 2
-    },
-    {
-      id: 2,
-      name: "Парковка тц",
-      position: [47.2301, 39.7235],
-      price: 120,
-      address: "пер. Соборный, 5",
-      places: 12,
-      selected: false,
-      distance: null,
-      availablePlaces: 1
-    },
-    {
-      id: 3,
-      name: "Парковка тц",
-      position: [47.2208, 39.7123],
-      price: 30,
-      address: "ул. Пушкинская, 115",
-      places: 32,
-      selected: false,
-      distance: null,
-      availablePlaces: 0
-    },
+
   ],
   selectedParking: null,
   selectedParkingDetail: null,
@@ -207,7 +175,29 @@ const actions = {
       throw error;
     }
   },
+async fetchParkings({ commit, dispatch }) {
+    try {
+      const response = await axios.get(`${url}/get_camera`);
+      const parkings = response.data;
 
+      // Преобразование полученных данных (если нужно)
+      const formattedParkings = parkings.map((p, index) => ({
+        id: p.camera_id,
+        name: p.name || `Парковка ${index + 1}`,
+        position: [p.latitude, p.longitude],
+        price: p.price || 50,
+        places: p.count_park_place || 10,
+        selected: false,
+        distance: 40,
+        availablePlaces: p.count_park_place,
+      }));
+
+      commit("SET_PARKINGS", formattedParkings);
+      dispatch("updateParkingDistances"); // обновим расстояния после загрузки
+    } catch (error) {
+      console.error("Ошибка при загрузке парковок:", error);
+    }
+  },
   cancelRoute({ commit }) {
     commit("CLEAR_ROUTE");
     commit("CLEAR_SELECTED_PARKING_DETAIL");
@@ -237,7 +227,7 @@ const getters = {
       const distance = parking.distance || 0;
       const matchesDistance = distance <= state.filters.maxDistance;
       const matchesPrice = parking.price <= state.filters.maxPrice;
-      const matchesAvailability = state.filters.onlyAvailable ? parking.availablePlaces > 0 : true;
+      const matchesAvailability = state.filters.availablePlaces ? parking.availablePlaces > 0 : true;
   
       return matchesDistance && matchesPrice && matchesAvailability;
     });

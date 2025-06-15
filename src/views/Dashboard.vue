@@ -31,7 +31,7 @@
             src="/public/icons/cabinet.svg" alt="">
       </router-link>
 
-      <LeafletMap @select-parking="showParkingDetai" ref="map" :parkings="filteredParkings" />
+      <LeafletMap @select-parking="showParkingDetai" ref="map" :parkings="allParkings" />
    </div>
 
 </template>
@@ -66,6 +66,8 @@ const showParkingDetaill = async (parking) => {
    store.commit('parking/SET_SELECTED_PARKING_DETAIL', parking)
    await store.dispatch('parking/selectParking', { id: parking.id })
 }
+
+
 
 const store = useStore();
 const map = ref(null);
